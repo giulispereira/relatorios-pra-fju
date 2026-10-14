@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
+// URL da API atualizada para o Render
 const API_URL = 'https://relatorios-pra-fju.onrender.com';
 
 function App() {
@@ -101,7 +102,19 @@ function App() {
     }
   };
 
-  const firmes = jovens.filter(j => j.categoria && j.categoria.toLowerCase().includes('firme') && !j.categoria.toLowerCase().includes('nao'));
+  // Ordena os jovens firmes colocando Valentina e Giuli sempre no topo
+  const firmes = jovens
+    .filter(j => j.categoria && j.categoria.toLowerCase().includes('firme') && !j.categoria.toLowerCase().includes('nao'))
+    .sort((a, b) => {
+      const nomeA = a.nome.toLowerCase();
+      const nomeB = b.nome.toLowerCase();
+      if (nomeA.includes('valentina')) return -1;
+      if (nomeB.includes('valentina')) return 1;
+      if (nomeA.includes('giuli')) return -1;
+      if (nomeB.includes('giuli')) return 1;
+      return nomeA.localeCompare(nomeB);
+    });
+
   const naoFirmes = jovens.filter(j => j.categoria && (j.categoria.toLowerCase().includes('nao') || j.categoria.toLowerCase().includes('não')));
 
   const totalFirmes = Object.entries(presencas).filter(([id, status]) => {
@@ -197,16 +210,16 @@ function App() {
   };
 
   return (
-    <div className="notranslate" translate="no" style={{ padding: '20px', maxWidth: '850px', margin: '0 auto' }}>
+    <div className="notranslate" translate="no" style={{ padding: '15px', maxWidth: '850px', margin: '0 auto' }}>
       {mensagemToast && (
         <div className="toast-notification">
           {mensagemToast}
         </div>
       )}
 
-      <header style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '5px' }}>TRIBO DE MANASSÉS</h1>
-        <p style={{ color: '#d4a338', fontFamily: 'Cinzel, serif', fontSize: '1.1rem', letterSpacing: '2px', marginTop: 0 }}>
+      <header style={{ textAlign: 'center' }}>
+        <h1>TRIBO DE MANASSÉS</h1>
+        <p style={{ color: '#d4a338', fontFamily: 'Cinzel, serif', letterSpacing: '2px', marginTop: 0 }}>
           SISTEMA DE RELATÓRIOS FJU
         </p>
       </header>
@@ -228,7 +241,7 @@ function App() {
 
       {abaAtiva === 'relatorio' ? (
         <div className="main-card">
-          <h2>Lançamento do Dia</h2>
+          <h2>Relatório do Dia</h2>
           <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', flexWrap: 'wrap' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '5px', color: '#e2b044' }}><strong>Data:</strong></label>
