@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// URL da API atualizada para o Render
 const API_URL = 'https://relatorios-pra-fju.onrender.com';
 
 function App() {
@@ -122,15 +121,19 @@ function App() {
     return j && j.categoria && j.categoria.toLowerCase().includes('firme') && !j.categoria.toLowerCase().includes('nao') && status;
   }).length;
 
-  const totalNovos = Object.entries(presencas).filter(([_, status]) => status === 'Novo').length;
-  const totalAfastados = Object.entries(presencas).filter(([_, status]) => status === 'Afastado').length;
+  const totalNovosPresenca = Object.entries(presencas).filter(([_, status]) => status === 'Novo').length;
+  const totalAfastadosPresenca = Object.entries(presencas).filter(([_, status]) => status === 'Afastado').length;
   const totalRetornando = Object.entries(presencas).filter(([_, status]) => status === 'Retornando').length;
-  const totalTribo = totalNovos + totalAfastados + totalRetornando + totalFirmes + parseInt(qtdObreiros || 0);
+  const totalFirmesExtra = Object.entries(presencas).filter(([id, status]) => {
+    const j = jovens.find(item => item.id === parseInt(id));
+    return j && j.categoria && (j.categoria.toLowerCase().includes('nao') || j.categoria.toLowerCase().includes('não')) && status === 'Firme';
+  }).length;
 
-  const textoAfastado = "[  ] Afastado";
-  const textoAfastadoAtivo = "[X] Afastado";
-  const textoRetornando = "[  ] Retornando";
-  const textoRetornandoAtivo = "[X] Retornando";
+  // Totais combinados para o relatório
+  const totalFirmesGeral = totalFirmes + totalFirmesExtra;
+  const totalNovosGeral = totalNovosPresenca;
+  const totalAfastadosGeral = totalAfastadosPresenca;
+  const totalTribo = totalNovosGeral + totalAfastadosGeral + totalRetornando + totalFirmesGeral + parseInt(qtdObreiros || 0);
 
   const gerarTextoRelatorio = () => {
     if (tipoDia === 'DOMINGO') {
@@ -139,12 +142,12 @@ function App() {
         "Data: " + dataRelatorio + "\n\n" +
         "Tribo de Manassés\n" +
         "🕚Horário: 09h30\n" +
-        "🤍Qt de novos: " + totalNovos + "\n" +
-        "🤍Qt de afastados: " + totalAfastados + "\n" +
-        "🤍Qt de firmes: " + totalFirmes + "\n" +
+        "🤍Qt de novos: " + totalNovosGeral + "\n" +
+        "🤍Qt de afastados: " + totalAfastadosGeral + "\n" +
+        "🤍Qt de firmes: " + totalFirmesGeral + "\n" +
         "🤍 Qt de Obr: " + qtdObreiros + "\n" +
-        "✅Qt total: " + (totalNovos + totalAfastados + totalFirmes + parseInt(qtdObreiros || 0)) + "\n\n" +
-        "🌐Qtde total o dia todo: " + (totalNovos + totalAfastados + totalFirmes + parseInt(qtdObreiros || 0)) + "\n\n" +
+        "✅Qt total: " + (totalNovosGeral + totalAfastadosGeral + totalFirmesGeral + parseInt(qtdObreiros || 0)) + "\n\n" +
+        "🌐Qtde total o dia todo: " + (totalNovosGeral + totalAfastadosGeral + totalFirmesGeral + parseInt(qtdObreiros || 0)) + "\n\n" +
         "-Alguém se batizou nas águas? " + batismoAguas + "\n" +
         "-Alguém foi batizado no Espírito Santo? " + batismoEspirito + "\n" +
         "- Líder/auxiliar ausente? " + liderAusente
@@ -154,10 +157,10 @@ function App() {
       return (
         "Encontro jovem " + (temaEncontro ? "*" + temaEncontro + "*" : "*tema*") + ":\n\n" +
         "🔻Tribo de Manassés\n\n" +
-        "▫️Novos: " + totalNovos + "\n" +
-        "▫️Afastados: " + totalAfastados + "\n" +
+        "▫️Novos: " + totalNovosGeral + "\n" +
+        "▫️Afastados: " + totalAfastadosGeral + "\n" +
         "▫️Retornando: " + totalRetornando + "\n" +
-        "▫️Firmes: " + totalFirmes + "\n" +
+        "▫️Firmes: " + totalFirmesGeral + "\n" +
         "▫️Obreiros: " + qtdObreiros + "\n" +
         "▫️Ab. Interna: " + abordagemInterna + "\n" +
         "▫️Ab. Externa: " + abordagemExterna + "\n" +
@@ -178,12 +181,12 @@ function App() {
         "📍 Líder: Valentina\n" +
         "📍 Auxiliar: Giuli\n\n" +
         "📍 Qt de jovens na reunião das 19h\n\n" +
-        "- Jovens novos: " + totalNovos + "\n" +
-        "- Jovens Afastados: " + totalAfastados + "\n" +
-        "- Jovens firmes: " + totalFirmes + "\n\n" +
-        "Total: " + (totalNovos + totalAfastados + totalFirmes) + "\n" +
+        "- Jovens novos: " + totalNovosGeral + "\n" +
+        "- Jovens Afastados: " + totalAfastadosGeral + "\n" +
+        "- Jovens firmes: " + totalFirmesGeral + "\n\n" +
+        "Total: " + (totalNovosGeral + totalAfastadosGeral + totalFirmesGeral) + "\n" +
         "____________\n" +
-        "Total de jovens em todos os horários: " + (totalNovos + totalAfastados + totalFirmes)
+        "Total de jovens em todos os horários: " + (totalNovosGeral + totalAfastadosGeral + totalFirmesGeral)
       );
     } 
     else {
@@ -192,10 +195,10 @@ function App() {
         "🗓️ Data: " + dataRelatorio + "\n\n" +
         "📍 Tribo de Manassés\n" +
         "📍 Líder: Valentina\n\n" +
-        "📍 Qt. total: " + (totalNovos + totalAfastados + totalFirmes) + "\n\n" +
-        "- Qt. de novos: " + totalNovos + "\n" +
-        "- Qt. de afastados: " + totalAfastados + "\n" +
-        "- Qt. de firmes: " + totalFirmes
+        "📍 Qt. total: " + (totalNovosGeral + totalAfastadosGeral + totalFirmesGeral) + "\n\n" +
+        "- Qt. de novos: " + totalNovosGeral + "\n" +
+        "- Qt. de afastados: " + totalAfastadosGeral + "\n" +
+        "- Qt. de firmes: " + totalFirmesGeral
       );
     }
   };
@@ -364,19 +367,34 @@ function App() {
               return (
                 <div key={j.id} style={{ background: '#0e233d', padding: '12px', borderRadius: '6px', border: '1px solid #1e3a5f', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                   <span><strong>{j.nome}</strong> {j.telefone && <small style={{ color: '#a0aec0', marginLeft: '8px' }}>({j.telefone})</small>}</span>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     <button 
                       onClick={() => handleTogglePresenca(j.id, 'Afastado')}
                       className={`btn-status ${statusAtual === 'Afastado' ? 'btn-status-afastado' : 'btn-status-inactive'}`}
                     >
-                      {statusAtual === 'Afastado' ? textoAfastadoAtivo : textoAfastado}
+                      {statusAtual === 'Afastado' ? '[X] Afastado' : '[  ] Afastado'}
                     </button>
                     <button 
-                      onClick={() => handleTogglePresenca(j.id, 'Retornando')}
-                      className={`btn-status ${statusAtual === 'Retornando' ? 'btn-status-retornando' : 'btn-status-inactive'}`}
+                      onClick={() => handleTogglePresenca(j.id, 'Novo')}
+                      className={`btn-status ${statusAtual === 'Novo' ? 'btn-status-retornando' : 'btn-status-inactive'}`}
                     >
-                      {statusAtual === 'Retornando' ? textoRetornandoAtivo : textoRetornando}
+                      {statusAtual === 'Novo' ? '[X] Novo' : '[  ] Novo'}
                     </button>
+                    <button 
+                      onClick={() => handleTogglePresenca(j.id, 'Firme')}
+                      className={`btn-status ${statusAtual === 'Firme' ? 'btn-status-afastado' : 'btn-status-inactive'}`}
+                      style={statusAtual === 'Firme' ? { background: '#f3c660', color: '#050e18' } : {}}
+                    >
+                      {statusAtual === 'Firme' ? '[X] Firme' : '[  ] Firme'}
+                    </button>
+                    {tipoDia === 'SABADO' && (
+                      <button 
+                        onClick={() => handleTogglePresenca(j.id, 'Retornando')}
+                        className={`btn-status ${statusAtual === 'Retornando' ? 'btn-status-retornando' : 'btn-status-inactive'}`}
+                      >
+                        {statusAtual === 'Retornando' ? '[X] Retornando' : '[  ] Retornando'}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
