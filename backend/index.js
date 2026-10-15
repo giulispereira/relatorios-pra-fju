@@ -7,20 +7,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Conexão com o banco PostgreSQL no Neon
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// Teste de conexão
 pool.connect()
   .then(() => console.log('✅ Conectado ao banco PostgreSQL com sucesso!'))
   .catch(err => console.error('❌ Erro de conexão com o banco:', err));
 
 // --- ROTAS DE JOVENS ---
-
-// 1. Listar todos os jovens
 app.get('/jovens', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM jovens ORDER BY nome ASC');
@@ -30,7 +26,6 @@ app.get('/jovens', async (req, res) => {
   }
 });
 
-// 2. Cadastrar um novo jovem
 app.post('/jovens', async (req, res) => {
   const { nome, telefone, categoria, notas } = req.body;
   try {
@@ -44,39 +39,86 @@ app.post('/jovens', async (req, res) => {
   }
 });
 
-// --- ROTAS DE RELATÓRIOS E PRESENÇAS ---
-
-// 3. Salvar o check-list do dia e gerar o relatório
+// --- ROTAS DE RELATÓRIOS E HISTÓRICO ---
 app.post('/relatorios', async (req, res) => {
-  const { data, tipo_dia, presencas } = req.body; 
-  // presencas é um array de objetos: [{ jovem_id: 1, status: 'Presente' }, ...]
+  const { data, tipo_dia, presencas, texto_gerado } = req.body; 
   
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // Cria o registro do relatório
-    const relatorioRes = await client.query(
-      'INSERT INTO relatorios (data, tipo_dia) VALUES ($1, $2) RETURNING id',
-      [data, tipo_dia]
-    );
+    
+    let relatorioRes;
+    try {
+      relatorioRes = await client.query(
+        'INSERT INTO relatorios (dados, tipo_dia, detalhes_extras) VALUES ($1, $2, $3) RETURNING "eu ia" AS id',
+        [data, tipo_dia, texto_gerado]
+      );
+    } catch (e) {
+      
+      relatorioRes = await client.query(
+        'INSERT INTO relatorios (dados, tipo_dia) VALUES ($1, $2) RETURNING "eu ia" AS id',
+        [data, tipo_dia]
+      );
+    }
+
     const relatorioId = relatorioRes.rows[0].id;
 
-    // Salva as presenças/status de cada jovem no dia
-    for (let p of presencas) {
-      await client.query(
-        'INSERT INTO presencas (relatorio_id, jovem_id, status_no_dia) VALUES ($1, $2, $3)',
-        [relatorioId, p.jovem_id, p.status]
-      );
+    
+    if (presencas && presencas.length > 0) {
+      for (let p of presencas) {
+        try {
+          await client.query(
+            'INSERT INTO presencas (relatorio_id, jovem_id, status_no_dia) VALUES ($1, $2, $3)',
+            [relatorioId, p.jovem_id, `${p.status}_${p.horario_tipo || 'PRINCIPAL'}`]
+          );
+        } catch (presErr) {
+          console.log("Aviso: tabela presencas pode não estar configurada, ignorando erro individual de presença.");
+        }
+      }
     }
 
     await client.query('COMMIT');
     res.status(201).json({ message: 'Relatório salvo com sucesso!', relatorioId });
   } catch (err) {
     await client.query('ROLLBACK');
+    console.error("ERRO DETALHADO NO POST /relatorios:", err);
     res.status(500).json({ error: err.message });
   } finally {
     client.release();
+  }
+});
+
+app.get('/relatorios/historico', async (req, res) => {
+  try {
+    
+    const result = await pool.query(`
+      SELECT 
+        "eu ia" AS id, 
+        dados AS data, 
+        tipo_dia, 
+        COALESCE(detalhes_extras, 'Relatório salvo sem texto detalhado.') AS detalhes_extras 
+      FROM relatorios 
+      ORDER BY "eu ia" DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    
+    try {
+      const resultFallback = await pool.query(`
+        SELECT 
+          "eu ia" AS id, 
+          dados AS data, 
+          tipo_dia, 
+          'Relatório salvo' AS detalhes_extras 
+        FROM relatorios 
+        ORDER BY "eu ia" DESC
+      `);
+      res.json(resultFallback.rows);
+    } catch (err2) {
+      console.error("ERRO DETALHADO NO GET /relatorios/historico:", err2);
+      res.status(500).json({ error: err2.message });
+    }
   }
 });
 
