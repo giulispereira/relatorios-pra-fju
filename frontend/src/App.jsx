@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = 'https://relatorios-pra-fju.onrender.com';
+const API_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000' 
+  : 'https://relatorios-pra-fju.onrender.com';
 
 function App() {
   const [jovens, setJovens] = useState([]);
-  const [abaAtiva, setAbaAtiva] = useState('relatorio'); // 'relatorio', 'jovens'
+  const [abaAtiva, setAbaAtiva] = useState('relatorio');
   
   const [tipoDia, setTipoDia] = useState('QUARTA');
   const [dataRelatorio, setDataRelatorio] = useState(new Date().toISOString().split('T')[0]);
@@ -71,6 +73,18 @@ function App() {
     }
   };
 
+  const deletarJovem = async (id, nome) => {
+    if (!window.confirm(`Deseja realmente remover "${nome}" do sistema?`)) return;
+    try {
+      await axios.delete(`${API_URL}/jovens/${id}`);
+      carregarJovens();
+      mostrarAviso('Jovem removido com sucesso!');
+    } catch (error) {
+      console.error('Erro ao deletar jovem:', error);
+      alert('Erro ao excluir o jovem.');
+    }
+  };
+
   const handleSetStatus = (jovemId, status, horario = 'PRINCIPAL') => {
     setPresencas(prev => {
       const atual = prev[jovemId];
@@ -88,7 +102,6 @@ function App() {
 
   const isQuartaOuDomingo = tipoDia === 'QUARTA' || tipoDia === 'DOMINGO';
 
-  
   const firmes = jovens
     .filter(j => j.categoria && j.categoria.toLowerCase().includes('firme') && !j.categoria.toLowerCase().includes('nao'))
     .sort((a, b) => {
@@ -101,7 +114,6 @@ function App() {
 
   const naoFirmes = jovens.filter(j => j.categoria && (j.categoria.toLowerCase().includes('nao') || j.categoria.toLowerCase().includes('não')));
 
-  // Contadores
   const totalFirmesPrincipal = Object.entries(presencas).filter(([id, dados]) => {
     const j = jovens.find(item => item.id === parseInt(id));
     return j && j.categoria && j.categoria.toLowerCase().includes('firme') && !j.categoria.toLowerCase().includes('nao') && dados.horario === 'PRINCIPAL';
@@ -332,7 +344,6 @@ function App() {
           )}
 
           <h3>⭐ JOVENS FIRMES ({firmes.length})</h3>
-          {/* Força exatamente 2 colunas com grid-template-columns */}
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(2, 1fr)', 
@@ -504,8 +515,16 @@ function App() {
           <h3 style={{ color: '#e2b044' }}>Lista de Jovens Cadastrados ({jovens.length})</h3>
           <ul style={{ paddingLeft: '20px', color: '#e2e8f0' }}>
             {jovens.map(j => (
-              <li key={j.id} style={{ marginBottom: '8px' }}>
-                <strong style={{ color: '#e2b044' }}>{j.nome}</strong> <em>({j.categoria})</em> {j.notas && `| Obs: ${j.notas}`}
+              <li key={j.id} style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0a1d33', padding: '8px 12px', borderRadius: '6px', border: '1px solid #1e3a5f' }}>
+                <div>
+                  <strong style={{ color: '#e2b044' }}>{j.nome}</strong> <em>({j.categoria})</em> {j.notas && `| Obs: ${j.notas}`}
+                </div>
+                <button 
+                  onClick={() => deletarJovem(j.id, j.nome)}
+                  style={{ background: '#d9534f', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                >
+                  Excluir
+                </button>
               </li>
             ))}
           </ul>

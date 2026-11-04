@@ -7,10 +7,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+const poolConfig = {
+  connectionString: process.env.DATABASE_URL
+};
+
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech')) {
+  poolConfig.ssl = { rejectUnauthorized: false };
+}
+
+const pool = new Pool(poolConfig);
 
 pool.connect()
   .then(() => console.log('✅ Conectado ao banco PostgreSQL com sucesso!'))
@@ -39,6 +44,24 @@ app.post('/jovens', async (req, res) => {
   }
 });
 
+app.delete('/jovens/:id', async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM presencas WHERE jovem_id = $1', [id]);
+    await client.query('DELETE FROM jovens WHERE id = $1', [id]);
+    await client.query('COMMIT');
+    res.json({ message: 'Jovem e suas presenças deletados com sucesso!' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error("ERRO DETALHADO NO DELETE /jovens:", err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // --- ROTAS DE RELATÓRIOS E HISTÓRICO ---
 app.post('/relatorios', async (req, res) => {
   const { data, tipo_dia, presencas, texto_gerado } = req.body; 
@@ -46,7 +69,6 @@ app.post('/relatorios', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
     
     let relatorioRes;
     try {
@@ -55,7 +77,6 @@ app.post('/relatorios', async (req, res) => {
         [data, tipo_dia, texto_gerado]
       );
     } catch (e) {
-      
       relatorioRes = await client.query(
         'INSERT INTO relatorios (dados, tipo_dia) VALUES ($1, $2) RETURNING "eu ia" AS id',
         [data, tipo_dia]
@@ -63,7 +84,6 @@ app.post('/relatorios', async (req, res) => {
     }
 
     const relatorioId = relatorioRes.rows[0].id;
-
     
     if (presencas && presencas.length > 0) {
       for (let p of presencas) {
@@ -91,7 +111,6 @@ app.post('/relatorios', async (req, res) => {
 
 app.get('/relatorios/historico', async (req, res) => {
   try {
-    
     const result = await pool.query(`
       SELECT 
         "eu ia" AS id, 
@@ -103,7 +122,6 @@ app.get('/relatorios/historico', async (req, res) => {
     `);
     res.json(result.rows);
   } catch (err) {
-    
     try {
       const resultFallback = await pool.query(`
         SELECT 
