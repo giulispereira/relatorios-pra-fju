@@ -120,18 +120,19 @@ function App() {
   const isQuartaOuDomingo = tipoDia === 'QUARTA' || tipoDia === 'DOMINGO';
   const permiteRetornando = tipoDia === 'SABADO' || tipoDia === 'PADRAO_NOMES';
 
+  // Ordenação deixando a Líder Eduarda e a Auxiliar Valentina no topo de suas listas
   const ordenarLiderancaPrimeiro = (a, b) => {
     const nomeA = a.nome.toLowerCase();
     const nomeB = b.nome.toLowerCase();
-    if (nomeA.includes('valentina') || nomeA.includes('giuli')) return -1;
-    if (nomeB.includes('valentina') || nomeB.includes('giuli')) return 1;
+    if (nomeA.includes('eduarda') || nomeA.includes('valentina')) return -1;
+    if (nomeB.includes('eduarda') || nomeB.includes('valentina')) return 1;
     return nomeA.localeCompare(nomeB);
   };
 
   // Separação das listas por categoria cadastrada
   const obreiros = jovens
     .filter(j => j.categoria && j.categoria.toLowerCase().includes('obreiro'))
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+    .sort(ordenarLiderancaPrimeiro);
 
   const firmes = jovens
     .filter(j => {
@@ -228,7 +229,6 @@ function App() {
         } else if (dados.status === 'Retornando') {
           listaRetornandoNomes.push(j.nome);
         } else {
-          // Inclui tanto os cadastrados como Firmes quanto Não Firmes marcados como "Firme" no dia
           listaFirmesNomes.push(j.nome);
         }
       });
@@ -286,8 +286,8 @@ function App() {
         `QUARTA-FEIRA/Escola da fé 🤓🙏🏽\n\n` +
         `🗓️Data: ${dataFormatada}\n` +
         `📍 Tribo de Manassés\n` +
-        `📍 Líder: Valentina\n` +
-        `📍 Auxiliar: Giuli\n\n` +
+        `📍 Líder: Eduarda\n` +
+        `📍 Auxiliar: Valentina\n\n` +
         `📍 Qt de jovens na reunião das 19h\n\n` +
         `- Jovens novos: ${totalNovosPrincipal}\n` +
         `- Jovens firmes: ${firmesComObreirosPrincipal}\n` +
@@ -298,12 +298,12 @@ function App() {
       );
     }
 
-    // SEGUNDA (ALGO A MAIS) - Obreiros entram na contagem de Firmes
+    // SEGUNDA (ALGO A MAIS) - Líder Eduarda e Obreiros entram na contagem de Firmes
     return (
       `ALGO A MAIS\n\n` +
       `🗓️ Data: ${dataFormatada}\n` +
       `📍Tribo de Manassés\n` +
-      `📍 Líder: Valentina\n` +
+      `📍 Líder: Eduarda\n` +
       `📍Qt. total: ${totalSegundaGeral}\n\n` +
       `- Qt. de novos: ${totalNovosGeral}\n` +
       `- Qt. de afastados: ${totalAfastadosGeral}\n` +
@@ -370,7 +370,7 @@ function App() {
             </div>
           </div>
 
-          {/* INFORMAÇÕES EXTRAS DE SÁBADO (Sem Qtd manual de Obreiros) */}
+          {/* INFORMAÇÕES EXTRAS DE SÁBADO */}
           {tipoDia === 'SABADO' && (
             <div style={{ background: 'rgba(15, 35, 61, 0.7)', padding: '15px', borderRadius: '18px', marginBottom: '25px', border: '1px solid #b8861e' }}>
               <h4 style={{ margin: '0 0 15px 0' }}>Informações do Encontro Jovem:</h4>
@@ -424,7 +424,7 @@ function App() {
             </div>
           )}
 
-          {/* INFORMAÇÕES EXTRAS DE DOMINGO (Sem Qtd manual de Obreiros) */}
+          {/* INFORMAÇÕES EXTRAS DE DOMINGO */}
           {tipoDia === 'DOMINGO' && (
             <div style={{ background: 'rgba(15, 35, 61, 0.7)', padding: '15px', borderRadius: '18px', marginBottom: '25px', border: '1px solid #b8861e' }}>
               <h4 style={{ margin: '0 0 15px 0' }}>Informações de Domingo:</h4>
@@ -560,8 +560,8 @@ function App() {
             })}
           </div>
 
-          {/* SEÇÃO: NÃO FIRMES / CONVIDADOS */}
-          <h3>NÃO FIRMES / CONVIDADOS ({naoFirmes.length})</h3>
+          {/* SEÇÃO: NÃO FIRMES */}
+          <h3>NÃO FIRMES ({naoFirmes.length})</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '25px' }}>
             {naoFirmes.map(j => {
               const marcacao = presencas[j.id];
